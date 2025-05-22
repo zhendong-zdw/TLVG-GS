@@ -5,6 +5,11 @@
 
 This repository contains the official implementation of the paper **"ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting"**, introducing a novel approach for style transfer in 3D scenes represented by Gaussian Splatting.
 
+## News
+- [2025/05/22] We release the homepage for [GT²-GS](https://vpx-ecnu.github.io/GT2-GS-website/), a 3d texture transfer framework for Gaussian Splatting.
+- [2025/03/28] We release the paper on arXiv.
+- [2025/03/26] We release the project page and code of ABC-GS.
+
 ## Key Features
 
 - 🎨 **Multi Style Transfer Loss**: Supports four distinct style loss formulations (FAST, NNFM, KNN-FM, Gram Matrix)
