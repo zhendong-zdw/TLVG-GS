@@ -6,7 +6,7 @@
 This repository contains the official implementation of the paper **"ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting"**, introducing a novel approach for style transfer in 3D scenes represented by Gaussian Splatting.
 
 ## News
-- [2025/11/08] [GT²-GS](https://vpx-ecnu.github.io/GT2-GS-website/) accepted by **AAAI 2026**!
+- [2025/11/08] [GT²-GS](https://vpx-ecnu.github.io/GT2-GS-website/) has been accepted by **AAAI 2026**!
 - [2025/05/31] Great news! Our ICME 2025 paper has been upgraded to **Oral Presentation**!
 - [2025/05/22] We release the homepage for [GT²-GS](https://vpx-ecnu.github.io/GT2-GS-website/), a 3d texture transfer framework for Gaussian Splatting.
 - [2025/03/28] We release the paper on arXiv.
