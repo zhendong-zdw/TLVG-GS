@@ -86,12 +86,17 @@ You can also contact [Garv1tum](https://github.com/Grav1tum) and [lzlcs](https:/
 
 If you find this project useful, please give a star⭐ to this repo and cite our paper:
 ```bibtex
-@article{liu2025abc,
-  title={ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting},
+@INPROCEEDINGS{11209430,
   author={Liu, Wenjie and Liu, Zhongliang and Yang, Xiaoyan and Sha, Man and Li, Yang},
-  journal={IEEE International Conference on Multimedia and Expo (ICME)},
-  year={2025}
-}
+  booktitle={2025 IEEE International Conference on Multimedia and Expo (ICME)}, 
+  title={ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-6},
+  keywords={Image segmentation;Three-dimensional displays;Boolean functions;Multimedia systems;Neural radiance field;Data structures;Controllability;Style Transfer;3D Gaussian Splatting;Controllable;Feature Alignment},
+  doi={10.1109/ICME59968.2025.11209430}}
+
 ```
 
 ## Acknowledgements
