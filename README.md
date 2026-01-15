@@ -1,110 +1,125 @@
-# ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting
+# Thinking Like Van Gogh: Structure-Aware Style Transfer via Flow-Guided 3D Gaussian Splatting
 
-[![arXiv](https://img.shields.io/badge/arXiv-2503.22218-b31b1b.svg)](https://arxiv.org/abs/2503.22218)
-[![Project Page](https://img.shields.io/badge/Project-Website-green)](https://vpx-ecnu.github.io/ABC-GS-website/)
+> *"I am seeking exaggeration in the essential."* — Vincent van Gogh, 1888
 
-This repository contains the official implementation of the paper **"ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting"**, introducing a novel approach for style transfer in 3D scenes represented by Gaussian Splatting.
+This repository contains the official implementation of **"Thinking Like Van Gogh: Structure-Aware Style Transfer via Flow-Guided 3D Gaussian Splatting"**, a flow-guided geometric advection framework that computationally realizes Post-Impressionist principles by prioritizing directional syntax over texture projection.
 
-## News
-- [2025/11/08] [GT²-GS](https://vpx-ecnu.github.io/GT2-GS-website/) has been accepted by **AAAI 2026**!
-- [2025/05/31] Great news! Our ICME 2025 paper has been upgraded to **Oral Presentation**!
-- [2025/05/22] We release the homepage for [GT²-GS](https://vpx-ecnu.github.io/GT2-GS-website/), a 3d texture transfer framework for Gaussian Splatting.
-- [2025/03/28] We release the paper on arXiv.
-- [2025/03/21] Our paper has been accepted by **ICME 2025**!
-- [2025/03/26] We release the project page and code of ABC-GS.
+## Abstract
+
+In 1888, Vincent van Gogh articulated: *"I am seeking exaggeration in the essential."* This principle—magnifying structural form while eliminating photographic detail—defined Post-Impressionist art. However, current 3D style transfer methods invert this philosophy, treating geometry as a rigid canvas for texture projection. To authentically replicate Post-Impressionist stylization, we must embrace geometric abstraction as the mechanism of expression.
+
+We present a flow-guided geometric advection framework for 3D Gaussian Splatting (3DGS) that extracts 2D directional flow from paintings and back-propagates these patterns to rectify 3D Gaussians, producing flow-aligned brushstrokes that wrap around scene topology without mesh priors.
 
 ## Key Features
 
-- 🎨 **Multi Style Transfer Loss**: Supports four distinct style loss formulations (FAST, NNFM, KNN-FM, Gram Matrix)
-- 🌟 **Three-Phase Training**: Pre-processing → Style Transfer → Post-processing pipeline
-- 🔍 **Controllable Style Transfer**: Implements senmatic-aware and multi-style for Gaussian scene stylization
-- 📦 **Modular Architecture**: Extensible design for custom loss functions and training phases
+- 🎨 **Flow-Guided Geometric Advection**: Mesh-free flow guidance via projection analysis that "combs" 3DGS primitives into directional brushstrokes
+- 🌊 **Luminance-Structure Decoupling**: Separates geometric deformation from color optimization, preventing artifacts during structural abstraction
+- 🖼️ **VLM-as-a-Judge Framework**: Assesses artistic authenticity through aesthetic judgment rather than pixel metrics
+- 🎭 **Post-Impressionist Stylization**: Achieves structural abstraction characteristic of Post-Impressionism by sacrificing photographic fidelity for expressive coherence
 
-## Gallery
+## Method Overview
 
-### Single Style Transfer
-![](./abcgs/assets/single_horns.jpg)
-![](./abcgs/assets/single_trex.jpg)
-![](./abcgs/assets/single_M60.jpg)
-![](./abcgs/assets/single_truck.jpg)
-### Semantic-aware Style Transfer
-![](./abcgs/assets/semantic_flower.jpg)
-### Compositional Style Transfer
-![](./abcgs/assets/compositional_fern.jpg)
+Our framework reconstructs the volumetric brushstrokes of master artists (e.g., Van Gogh) through a **Geometry-First, Color-Second** strategy:
 
+1. **Flow-Aware Primitive Rectification**: Extracts dominant local stroke orientation from style reference using structure tensor analysis
+2. **Gradient-Driven Advection Optimization**: Back-propagates 2D flow gradients to rectify 3D Gaussian positions and rotations
+3. **Luminance-Structure Decoupling**: Optimizes geometric flow in luminance space while maintaining chromatic consistency
+
+The optimization jointly minimizes three types of energies:
+- **Flow-alignment energy**: Enforces coherent, anisotropic brushstroke geometry
+- **Geometric regularization energy**: Preserves global 3D structure while allowing controlled deformation
+- **Appearance decoupling energy**: Separates structural stylization from chromatic consistency
 
 ## Installation
 
-### Requirements 
-- NVIDIA GPU with CUDA 11.8
+### Requirements
+- NVIDIA GPU with CUDA 11.8+
 - Python 3.10
 - PyTorch 2.3.0
 
-### Conda
+### Setup
 
 ```bash
 # Clone repository with submodules
-git clone https://github.com/vpx-ecnu/ABC-GS --recursive
-cd ABC-GS
+git clone https://github.com/zhendong-zdw/TLVG-GS --recursive
+cd TLVG-GS
 
 # Install Python dependencies
 conda env create -f environment.yaml
-conda activate ABC-GS
-pip install abcgs/submodules/lang-segment-anything
+conda activate TLVG-GS
+
+# Install submodules
+pip install tlvg/submodules/lang-segment-anything
 pip install gs/submodules/diff-gaussian-rasterization
 pip install gs/submodules/simple-knn
 ```
 
-
-
 ## Quick Start
-### Dataset and Checkpoint
-* For scene dataset, you can find LLFF dataset in [NeRF](https://github.com/bmild/nerf) and T&T dataset in [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). 
-* For style dataset, you can find it in [here](https://drive.google.com/file/d/10EPUQpH0PE8Mnoxxs1URePtjQZElt--s/view?usp=sharing).
-* **For optimal stylization results, ensure that the original scene is trained using 0th-order spherical harmonics (SH) coefficients.** Higher-order SH coefficients may introduce artifacts or inconsistencies during the style transfer process. Using 0th-order SH coefficients ensures smoother and more coherent stylization.
+
+### Dataset Preparation
+- **Scene datasets**: LLFF dataset from [NeRF](https://github.com/bmild/nerf) and T&T dataset from [3DGS](https://github.com/graphdeco-inria/gaussian-splatting)
+- **Style images**: Post-Impressionist masterpieces (e.g., Van Gogh's *The Starry Night*, Munch's *The Scream*)
+
+**Important**: For optimal stylization results, ensure that the original scene is trained using 0th-order spherical harmonics (SH) coefficients. Higher-order SH coefficients may introduce artifacts during the style transfer process.
 
 ### Single Style Transfer
-```
+
+```bash
 python style_transfer.py --config configs/llff_single.yaml
+python style_transfer.py --config configs/tnt_single.yaml
 ```
+
 ### Semantic-aware Style Transfer
-```
+
+```bash
 python style_transfer.py --config configs/llff_semantic.yaml
 ```
+
 ### Compositional Style Transfer
-```
+
+```bash
 python style_transfer.py --config configs/llff_compositional.yaml
 ```
 
-Please check `python style_transfer.py --help` or files under `configs/` for help.
+## Results
 
-## Contact
+Our method produces constitutive brushstrokes that physically rotate and align with the scene's curvature, creating coherent painterly flow that mimics the artist's hand. This results in a strong sense of relief and directional energy absent in prior works.
 
-If you have any questions or suggestions, feel free to open an issue on GitHub.
-You can also contact [Garv1tum](https://github.com/Grav1tum) and [lzlcs](https://github.com/lzlcs) directly.
+![Qualitative Results](./tlvg/assets/fig6.png)
 
-## Citation
+### Key Advantages
 
-If you find this project useful, please give a star⭐ to this repo and cite our paper:
-```bibtex
-@INPROCEEDINGS{11209430,
-  author={Liu, Wenjie and Liu, Zhongliang and Yang, Xiaoyan and Sha, Man and Li, Yang},
-  booktitle={2025 IEEE International Conference on Multimedia and Expo (ICME)}, 
-  title={ABC-GS: Alignment-Based Controllable Style Transfer for 3D Gaussian Splatting}, 
-  year={2025},
-  volume={},
-  number={},
-  pages={1-6},
-  keywords={Image segmentation;Three-dimensional displays;Boolean functions;Multimedia systems;Neural radiance field;Data structures;Controllability;Style Transfer;3D Gaussian Splatting;Controllable;Feature Alignment},
-  doi={10.1109/ICME59968.2025.11209430}
-}
+- **Geometric Flow**: Brushstrokes wrap around scene topology, avoiding "flat sticker" artifacts
+- **Volumetric Relief**: Creates impasto effects through geometric deformation
+- **Artistic Authenticity**: Prioritizes aesthetic energy over physical accuracy
 
-```
+## Evaluation
+
+We evaluate our method using:
+
+1. **VLM-as-a-Judge**: A panel of AI critics (GPT-5.1, GPT-4o, Claude 4.5, Claude 3.5, Gork, Qwen 3) performing randomized pairwise comparisons
+2. **User Studies**: 30 participants (18 art experts, 12 laypeople) evaluating Flow Alignment, Painterly Materiality, and Aesthetic Preference
+
+Our method achieves:
+- **Win Rate**: >85% across geometric metrics
+- **Average Authenticity Score**: 8.36/10 (vs. 7.19 for baseline)
 
 ## Acknowledgements
 
 This project builds upon the following works:
-- **3D Gaussian Splatting**:  
-  The core 3D Gaussian rendering and optimization framework is based on the [3D Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) implementation by Bernhard Kerbl et al. 
-- **Lang-Segment-Anything**: \
-    The semantic segmentation functionality is powered by [Lang-Segment-Anything](https://github.com/luca-medeiros/lang-segment-anything), a language-driven segmentation tool.
+
+- **3D Gaussian Splatting**: The core 3D Gaussian rendering and optimization framework is based on [3D Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) by Bernhard Kerbl et al.
+- **ABC-GS**: Our implementation builds upon [ABC-GS](https://github.com/vpx-ecnu/ABC-GS) for the base framework
+- **Lang-Segment-Anything**: Semantic segmentation functionality powered by [Lang-Segment-Anything](https://github.com/luca-medeiros/lang-segment-anything)
+
+## License
+
+See [LICENSE.md](LICENSE.md) for details.
+
+## Contact
+
+For questions or suggestions, please open an issue on GitHub.
+
+---
+
+*"What critics derided as 'crude' proved revolutionary—inspiring Post-Impressionism and Expressionism to embrace structural syntax over literal representation."*

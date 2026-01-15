@@ -33,6 +33,12 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
 
+    # Compute camera-to-world transform to extract cam_right_world and cam_up_world
+    # These are used for brush direction calculation in CUDA kernel
+    view_inv = torch.inverse(viewpoint_camera.world_view_transform)
+    cam_right_world = view_inv[:3, 0].contiguous().float()  # First column (X-axis direction) [3]
+    cam_up_world = view_inv[:3, 1].contiguous().float()      # Second column (Y-axis direction) [3]
+
     raster_settings = GaussianRasterizationSettings(
         image_height=int(viewpoint_camera.image_height),
         image_width=int(viewpoint_camera.image_width),
@@ -44,6 +50,8 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
         projmatrix=viewpoint_camera.full_proj_transform,
         sh_degree=pc.active_sh_degree,
         campos=viewpoint_camera.camera_center,
+        cam_right_world=cam_right_world,
+        cam_up_world=cam_up_world,
         prefiltered=False,
         debug=pipe.debug,
         antialiasing=pipe.antialiasing
@@ -55,6 +63,17 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     means2D = screenspace_points
     opacity = pc.get_opacity
 
+    # Check input data for NaN/Inf before rasterization
+    if torch.isnan(means3D).any():
+        print(f"ERROR: means3D contains NaN values! Count: {torch.isnan(means3D).sum()}")
+        print(f"  NaN positions: {torch.isnan(means3D).any(dim=1).nonzero().squeeze()[:10]}")
+    if torch.isinf(means3D).any():
+        print(f"ERROR: means3D contains Inf values! Count: {torch.isinf(means3D).sum()}")
+    if opacity is not None and torch.isnan(opacity).any():
+        print(f"ERROR: opacity contains NaN values! Count: {torch.isnan(opacity).sum()}")
+    if opacity is not None and torch.isinf(opacity).any():
+        print(f"ERROR: opacity contains Inf values! Count: {torch.isinf(opacity).sum()}")
+
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
     scales = None
@@ -63,9 +82,15 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
 
     if pipe.compute_cov3D_python:
         cov3D_precomp = pc.get_covariance(scaling_modifier)
+        if cov3D_precomp is not None and torch.isnan(cov3D_precomp).any():
+            print(f"ERROR: cov3D_precomp contains NaN values! Count: {torch.isnan(cov3D_precomp).sum()}")
     else:
         scales = pc.get_scaling
         rotations = pc.get_rotation
+        if scales is not None and torch.isnan(scales).any():
+            print(f"ERROR: scales contains NaN values! Count: {torch.isnan(scales).sum()}")
+        if rotations is not None and torch.isnan(rotations).any():
+            print(f"ERROR: rotations contains NaN values! Count: {torch.isnan(rotations).sum()}")
 
     # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors
     # from SHs in Python, do it. If not, then SH -> RGB conversion will be done by rasterizer.
@@ -88,7 +113,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     if separate_sh:
-        rendered_image, radii, depth_image = rasterizer(
+        rendered_image, radii, depth_image, sum_E, sum_E_dx, sum_E_dy, sum_E_xx, sum_E_xy, sum_E_yy, sum_E_dt2, sum_E_dn2, sum_E_z, sum_E_z2 = rasterizer(
             means3D = means3D,
             means2D = means2D,
             dc = dc,
@@ -99,7 +124,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
             rotations = rotations,
             cov3D_precomp = cov3D_precomp)
     else:
-        rendered_image, radii, depth_image = rasterizer(
+        rendered_image, radii, depth_image, sum_E, sum_E_dx, sum_E_dy, sum_E_xx, sum_E_xy, sum_E_yy, sum_E_dt2, sum_E_dn2, sum_E_z, sum_E_z2 = rasterizer(
             means3D = means3D,
             means2D = means2D,
             shs = shs,
@@ -108,6 +133,31 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
             scales = scales,
             rotations = rotations,
             cov3D_precomp = cov3D_precomp)
+    
+    # Check for NaN or invalid values in returned tensors from rasterization
+    try:
+        if torch.isnan(rendered_image).any():
+            nan_count = torch.isnan(rendered_image).sum().item()
+            print(f"ERROR: rendered_image contains NaN values! Count: {nan_count}")
+            print(f"  Image shape: {rendered_image.shape}, Min: {rendered_image.min().item():.6f}, Max: {rendered_image.max().item():.6f}")
+        if torch.isinf(rendered_image).any():
+            inf_count = torch.isinf(rendered_image).sum().item()
+            print(f"ERROR: rendered_image contains Inf values! Count: {inf_count}")
+        if not torch.isfinite(radii).all():
+            nan_count = torch.isnan(radii).sum().item()
+            inf_count = torch.isinf(radii).sum().item()
+            print(f"ERROR: radii contains invalid values! NaN: {nan_count}, Inf: {inf_count}")
+            print(f"  Radii shape: {radii.shape}, Min: {radii.min().item()}, Max: {radii.max().item()}")
+        if torch.isnan(depth_image).any():
+            nan_count = torch.isnan(depth_image).sum().item()
+            print(f"ERROR: depth_image contains NaN values! Count: {nan_count}")
+        if torch.isinf(depth_image).any():
+            inf_count = torch.isinf(depth_image).sum().item()
+            print(f"ERROR: depth_image contains Inf values! Count: {inf_count}")
+    except Exception as e:
+        print(f"Warning: Error checking for NaN values in rasterization output: {e}")
+        import traceback
+        traceback.print_exc()
         
     # Apply exposure to rendered image (training only)
     if use_trained_exp:
@@ -122,7 +172,17 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
         "viewspace_points": screenspace_points,
         "visibility_filter" : (radii > 0).nonzero(),
         "radii": radii,
-        "depth" : depth_image
+        "depth" : depth_image,
+        "sum_E": sum_E,
+        "sum_E_dx": sum_E_dx,
+        "sum_E_dy": sum_E_dy,
+        "sum_E_xx": sum_E_xx,
+        "sum_E_xy": sum_E_xy,
+        "sum_E_yy": sum_E_yy,
+        "sum_E_dt2": sum_E_dt2,
+        "sum_E_dn2": sum_E_dn2,
+        "sum_E_z": sum_E_z,
+        "sum_E_z2": sum_E_z2,
         }
     
     return out

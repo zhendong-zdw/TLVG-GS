@@ -1,4 +1,4 @@
-name: ABC-GS
+name: tlvg-gs
 channels:
   - pytorch
   - nvidia

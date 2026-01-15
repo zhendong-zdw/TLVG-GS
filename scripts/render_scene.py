@@ -6,9 +6,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 workspace_dir = os.path.dirname(script_dir)
 sys.path.append(workspace_dir)
 
-from abcgs.utils.image import render_viewpoint
-from abcgs.configs import parse_args
-from abcgs.trainer import StyleTrainer
+from tlvg.utils.image import render_viewpoint
+from tlvg.configs import parse_args
+from tlvg.trainer import StyleTrainer
 
     
 if __name__ == '__main__':

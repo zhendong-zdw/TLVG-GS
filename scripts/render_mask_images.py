@@ -6,7 +6,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 workspace_dir = os.path.dirname(script_dir)
 sys.path.append(workspace_dir)
 
-from abcgs.utils.image import render_depth_or_mask_images
+from tlvg.utils.image import render_depth_or_mask_images
 import torch
 
 pt_path = sys.argv[1]

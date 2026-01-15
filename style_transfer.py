@@ -3,10 +3,10 @@ import sys
 sys.path.append("./gs")
 
 import torch
-from abcgs.configs import parse_args
+from tlvg.configs import parse_args
 from gs.utils.general_utils import safe_state
 from gs.gaussian_renderer import network_gui
-from abcgs.trainer import StyleTrainer
+from tlvg.trainer import StyleTrainer
 import random
 
 def main():
@@ -18,7 +18,8 @@ def main():
     torch.cuda.manual_seed_all(config.style.random_seed)
     
     safe_state(config.app.quiet)
-    network_gui.init(config.app.ip, config.app.port)
+    if config.app.enable_gui:
+        network_gui.init(config.app.ip, config.app.port)
     torch.autograd.set_detect_anomaly(config.app.detect_anomaly)
     
     trainer = StyleTrainer(config)
